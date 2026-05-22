@@ -10,7 +10,7 @@ from flask import Flask, render_template, request, jsonify, g, session, redirect
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-sorteio-key')
-DATABASE = 'sorteio.db'
+DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sorteio.db')
 
 ADMIN_USER = os.environ.get('ADMIN_USER', 'admin')
 ADMIN_PASS = os.environ.get('ADMIN_PASS', 'admin123')
@@ -429,6 +429,7 @@ def admin_deletar(sorteio_id):
     return redirect(url_for('admin_dashboard'))
 
 
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True, port=5000)
