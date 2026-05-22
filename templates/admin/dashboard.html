@@ -1,0 +1,64 @@
+{% extends 'admin/base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex-between flex-wrap" style="margin-bottom: 32px;">
+  <div class="page-header" style="margin-bottom: 0;">
+    <h1>Dashboard</h1>
+    <p>Gerencie os sorteios dos eventos.</p>
+  </div>
+  <a href="/admin/sorteio/criar" class="btn btn-primary">+ Novo Sorteio</a>
+</div>
+
+{% if not sorteios %}
+<div class="card" style="text-align:center; padding: 60px 20px;">
+  <div style="font-size: 3rem; margin-bottom: 16px;">🎲</div>
+  <p style="color: var(--muted); margin-bottom: 20px;">Nenhum sorteio criado ainda.</p>
+  <a href="/admin/sorteio/criar" class="btn btn-primary">Criar primeiro sorteio</a>
+</div>
+{% else %}
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:16px;">
+  {% for s in sorteios %}
+  <div class="card" style="display:flex; flex-direction:column; gap:14px;">
+
+    <div>
+      <div class="flex-between" style="margin-bottom:10px;">
+        <img src="/img/{% if s.evento == 'dougbrazil' %}doug{% else %}cncf{% endif %}.png"
+             alt="{{ s.evento }}"
+             style="height:28px; object-fit:contain; filter:drop-shadow(0 0 8px {% if s.evento == 'dougbrazil' %}rgba(0,195,58,.55){% else %}rgba(0,120,215,.4){% endif %});">
+        <span style="font-size:0.72rem; color:var(--muted);">{{ s.criado_em[:10] }}</span>
+      </div>
+      <h3 style="font-family:var(--font-head); font-weight:700; font-size:1.05rem; margin-bottom:4px;">{{ s.nome }}</h3>
+      {% if s.descricao %}
+      <p style="font-size:0.8rem; color:var(--muted); line-height:1.4;">{{ s.descricao }}</p>
+      {% endif %}
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1; background:rgba(255,255,255,0.04); border-radius:10px; padding:10px; text-align:center;">
+        <div style="font-family:var(--font-head); font-size:1.3rem; font-weight:800;">{{ s.total_ganhadores }}/{{ s.num_ganhadores }}</div>
+        <div style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Ganhadores</div>
+      </div>
+      <div style="flex:1; background:rgba(255,255,255,0.04); border-radius:10px; padding:10px; text-align:center;">
+        <div style="font-family:var(--font-head); font-size:1.3rem; font-weight:800;">{{ s.total_participantes }}</div>
+        <div style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Participantes</div>
+      </div>
+    </div>
+
+    <div style="height:3px; background:rgba(255,255,255,0.07); border-radius:2px;">
+      {% if s.num_ganhadores > 0 %}
+      <div style="height:100%; border-radius:2px; width:{{ [[(s.total_ganhadores / s.num_ganhadores * 100)|int, 0]|max, 100]|min }}%;
+        background:{% if s.evento == 'dougbrazil' %}var(--doug-primary){% else %}var(--cncf-accent){% endif %};
+        transition:width 0.4s;"></div>
+      {% endif %}
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:auto;">
+      <a href="/admin/sorteio/{{ s.id }}" class="btn btn-primary" style="flex:1; justify-content:center;">Gerenciar</a>
+      <a href="/sorteio/{{ s.slug }}" target="_blank" class="btn btn-ghost" style="padding:10px 14px;" title="Página pública">↗</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

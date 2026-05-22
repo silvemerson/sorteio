@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Admin Sorteio</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d; --surface: #181818; --border: rgba(255,255,255,0.08);
+    --text: #f0f0f0; --muted: #888; --cncf-primary: #0078D7;
+    --font-head: 'Inter', sans-serif; --font-body: 'Inter', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--font-body);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  }
+  .box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 40px; width: 100%; max-width: 380px;
+  }
+  h1 { font-family: var(--font-head); font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 28px; }
+  .fg { margin-bottom: 16px; }
+  label { display: block; font-size: 0.73rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  input {
+    width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; color: var(--text);
+    font-family: var(--font-body); font-size: 0.93rem; outline: none; transition: border-color 0.2s;
+  }
+  input:focus { border-color: rgba(255,255,255,0.25); }
+  .btn {
+    width: 100%; padding: 14px; background: var(--cncf-primary); color: #fff;
+    border: none; border-radius: 10px; font-family: var(--font-head); font-weight: 700;
+    font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px;
+    cursor: pointer; margin-top: 8px; transition: background 0.2s;
+  }
+  .btn:hover { background: #0086ef; }
+  .error {
+    background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.3);
+    color: #ff6060; padding: 10px 14px; border-radius: 10px; font-size: 0.83rem; margin-bottom: 16px;
+  }
+  .back { text-align: center; margin-top: 20px; font-size: 0.78rem; color: var(--muted); }
+  .back a { color: inherit; text-decoration: underline; opacity: 0.6; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🔐 Admin</h1>
+  <p class="sub">Painel de gerenciamento de sorteios.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="POST">
+    <div class="fg">
+      <label>Usuário</label>
+      <input type="text" name="usuario" autocomplete="username" autofocus required>
+    </div>
+    <div class="fg">
+      <label>Senha</label>
+      <input type="password" name="senha" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn">Entrar</button>
+  </form>
+  <p class="back"><a href="/">← Voltar ao site</a></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorteio de Eventos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --doug-primary: #009B3A;
+    --doug-dark: #061a0e;
+    --doug-accent: #FFD700;
+    --cncf-primary: #0078D7;
+    --cncf-dark: #00152E;
+    --cncf-accent: #00D1FF;
+    --bg: #0d0d0d;
+    --surface: #181818;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f0f0;
+    --muted: #888;
+    --radius: 16px;
+    --font-head: 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  /* ── Header ── */
+  header { text-align: center; margin-bottom: 48px; }
+  header h1 {
+    font-family: var(--font-head);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #fff 30%, #aaa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header p { color: var(--muted); margin-top: 8px; font-size: 1rem; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 6px;
+    width: fit-content;
+    margin: 0 auto 40px;
+  }
+  .tab-btn {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 10px 28px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.3s;
+    text-transform: uppercase;
+  }
+  .tab-btn.active-doug {
+    background: var(--doug-primary);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(0,155,58,0.5);
+  }
+  .tab-btn.active-cncf {
+    background: var(--cncf-primary);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(0,120,215,0.4);
+  }
+
+  /* ── Panel ── */
+  .panel { display: none; animation: fadeUp 0.4s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Grid ── */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+  .card h2 {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── Accent lines per event ── */
+  .doug .card h2 { color: var(--doug-accent); }
+  .cncf .card h2 { color: var(--cncf-accent); }
+
+  /* ── Form ── */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type=text], input[type=email] {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: rgba(255,255,255,0.3); }
+
+  .consent {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+    cursor: pointer;
+  }
+  .consent input[type=checkbox] { margin-top: 2px; accent-color: currentColor; flex-shrink: 0; }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .btn:active { transform: scale(0.98); }
+  .doug .btn-primary { background: var(--doug-primary); color: #fff; }
+  .doug .btn-primary:hover { background: #00b341; box-shadow: 0 0 20px rgba(0,155,58,0.4); }
+  .cncf .btn-primary { background: var(--cncf-primary); color: #fff; }
+  .cncf .btn-primary:hover { background: var(--cncf-accent); color: #000; box-shadow: 0 0 20px rgba(0,209,255,0.3); }
+
+  .toast {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    display: none;
+  }
+  .toast.ok  { background: rgba(0,220,120,0.12); border: 1px solid rgba(0,220,120,0.3); color: #00dc78; }
+  .toast.err { background: rgba(255,80,80,0.12);  border: 1px solid rgba(255,80,80,0.3);  color: #ff6060; }
+
+  /* ── QR Card ── */
+  .qr-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .qr-card img {
+    width: 160px;
+    height: 160px;
+    border-radius: 12px;
+    border: 3px solid var(--border);
+    background: #fff;
+    padding: 4px;
+  }
+  .qr-card p { font-size: 0.78rem; color: var(--muted); text-align: center; }
+  .qr-card a { color: inherit; text-decoration: underline; opacity: 0.7; }
+
+  /* ── Counter ── */
+  .counter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .counter .num {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .counter .lbl { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .doug .counter .num { color: var(--doug-accent); }
+  .cncf .counter .num { color: var(--cncf-accent); }
+
+  /* ── Roulette ── */
+  .roulette-section { grid-column: 1 / -1; }
+
+  .roulette-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  /* Spinning drum */
+  .drum-container {
+    width: 100%;
+    max-width: 480px;
+    height: 180px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+  }
+  .drum-container::before,
+  .drum-container::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 60px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .drum-container::before { top: 0;    background: linear-gradient(to bottom, rgba(24,24,24,0.95), transparent); }
+  .drum-container::after  { bottom: 0; background: linear-gradient(to top,   rgba(24,24,24,0.95), transparent); }
+
+  .drum-highlight {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%; transform: translateY(-50%);
+    height: 52px;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .doug .drum-highlight { background: rgba(0,155,58,0.12); border-top: 1px solid rgba(255,215,0,0.5); border-bottom: 1px solid rgba(255,215,0,0.5); }
+  .cncf .drum-highlight { background: rgba(0,120,215,0.12); border-top: 1px solid rgba(0,120,215,0.4); border-bottom: 1px solid rgba(0,120,215,0.4); }
+
+  .drum-track {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    will-change: transform;
+  }
+  .drum-item {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    transition: color 0.15s;
+    padding: 0 20px;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .drum-item.center { color: #fff; font-size: 1.25rem; }
+
+  /* Btn sortear */
+  .btn-sortear {
+    padding: 16px 40px;
+    font-size: 1rem;
+    border-radius: 50px;
+    width: auto;
+  }
+  .doug .btn-sortear { background: linear-gradient(135deg, #007A2F, #00C853); }
+  .cncf .btn-sortear { background: linear-gradient(135deg, var(--cncf-primary), var(--cncf-accent)); color: #000; }
+
+  .btn-reset {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 10px 24px;
+    border-radius: 50px;
+    font-size: 0.78rem;
+    width: auto;
+  }
+  .btn-reset:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+
+  .winner-banner {
+    width: 100%;
+    max-width: 480px;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    display: none;
+  }
+  .doug .winner-banner { background: linear-gradient(135deg, rgba(0,155,58,0.2), rgba(255,215,0,0.08)); border: 1px solid rgba(0,185,58,0.5); }
+  .cncf .winner-banner { background: linear-gradient(135deg, rgba(0,120,215,0.2), rgba(0,209,255,0.1)); border: 1px solid rgba(0,120,215,0.4); }
+  .winner-banner .trophy { font-size: 2.5rem; margin-bottom: 8px; }
+  .winner-banner .winner-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
+  .winner-banner .winner-email { font-size: 0.85rem; color: var(--muted); }
+
+  .roulette-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+  /* ── LGPD ── */
+  .lgpd-link { margin-top: 10px; text-align: center; }
+  .lgpd-link button {
+    background: none; border: none; cursor: pointer;
+    font-size: 0.72rem; color: var(--muted);
+    text-decoration: underline; opacity: 0.6;
+    font-family: var(--font-body);
+    transition: opacity 0.2s;
+  }
+  .lgpd-link button:hover { opacity: 1; }
+  .lgpd-form {
+    display: none;
+    margin-top: 12px;
+    background: rgba(255,80,80,0.06);
+    border: 1px solid rgba(255,80,80,0.2);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    animation: fadeUp 0.3s ease;
+  }
+  .lgpd-form p { margin-bottom: 10px; line-height: 1.5; }
+  .lgpd-form input {
+    width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; color: var(--text);
+    font-family: var(--font-body); font-size: 0.88rem; outline: none;
+  }
+  .lgpd-btn-confirm {
+    flex: 1; padding: 9px; border: none; border-radius: 8px; cursor: pointer;
+    background: rgba(255,60,60,0.2); color: #ff6060; border: 1px solid rgba(255,60,60,0.3);
+    font-family: var(--font-body); font-size: 0.8rem; font-weight: 600; transition: all 0.2s;
+  }
+  .lgpd-btn-confirm:hover { background: rgba(255,60,60,0.35); }
+  .lgpd-btn-cancel {
+    padding: 9px 16px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+    background: transparent; color: var(--muted); font-family: var(--font-body); font-size: 0.8rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <h1>🎲 Sorteio de Eventos</h1>
+    <p>Cadastre-se e concorra a prêmios!</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active-doug" onclick="switchTab('doug', this)">🔥 DougBrazil</button>
+    <button class="tab-btn" onclick="switchTab('cncf', this)">☁️ CNCF Campinas</button>
+  </div>
+
+  <!-- ══════════════ DOUGBRAZIL ══════════════ -->
+  <div id="panel-doug" class="panel doug active">
+    <div style="text-align:center; margin-bottom:28px;">
+      <img src="/img/doug.png" alt="DougBrazil" style="max-height:72px; max-width:260px; object-fit:contain; filter:drop-shadow(0 0 18px rgba(0,195,58,0.5));">
+    </div>
+    <div class="grid">
+
+      <!-- Cadastro -->
+      <div class="card">
+        <h2>📝 Inscrição</h2>
+        <div class="form-group">
+          <label>Nome completo</label>
+          <input type="text" id="doug-nome" placeholder="Seu nome" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="doug-email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <label class="consent">
+          <input type="checkbox" id="doug-consent">
+          <span>Concordo que meus dados (nome e e-mail) sejam utilizados exclusivamente para este sorteio, conforme a LGPD.</span>
+        </label>
+        <button class="btn btn-primary" onclick="cadastrar('dougbrazil')">Participar do Sorteio</button>
+        <div class="toast" id="doug-toast"></div>
+        <div class="lgpd-link">
+          <button onclick="toggleLgpd('dougbrazil')">🗑 Remover meus dados (LGPD)</button>
+        </div>
+        <div class="lgpd-form" id="lgpd-dougbrazil">
+          <p>Informe seu e-mail para remover todos os seus dados deste evento.</p>
+          <input type="email" id="lgpd-email-dougbrazil" placeholder="seu@email.com">
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="lgpd-btn-confirm" onclick="deletarDados('dougbrazil')">Confirmar exclusão</button>
+            <button class="lgpd-btn-cancel" onclick="toggleLgpd('dougbrazil')">Cancelar</button>
+          </div>
+          <div class="toast" id="lgpd-toast-dougbrazil"></div>
+        </div>
+      </div>
+
+      <!-- QR + Counter -->
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="card qr-card">
+          <h2 style="align-self:flex-start">📲 Contatos</h2>
+          <img src="data:image/png;base64,{{ qr_doug }}" alt="QR Code DougBrazil">
+          <p>Aponte a câmera para acessar<br><a href="https://linktr.ee/dougbrazil" target="_blank">linktr.ee/dougbrazil</a></p>
+        </div>
+        <div class="card">
+          <div class="counter">
+            <div class="num" id="doug-total">0</div>
+            <div>
+              <div class="lbl">participantes</div>
+              <div style="font-size:0.72rem;color:var(--muted)">inscritos</div>
+            </div>
+          </div>
+          <div id="doug-lista" style="font-size:0.8rem;color:var(--muted);max-height:90px;overflow-y:auto;line-height:1.8;"></div>
+        </div>
+      </div>
+
+      <!-- Roulette -->
+      <div class="card roulette-section">
+        <h2>🎰 Roleta do Sorteio</h2>
+        <div class="roulette-wrap">
+          <div class="drum-container" id="doug-drum">
+            <div class="drum-highlight"></div>
+            <div class="drum-track" id="doug-track">
+              <div class="drum-item center">Cadastre participantes...</div>
+            </div>
+          </div>
+          <div class="winner-banner" id="doug-winner">
+            <div class="trophy">🏆</div>
+            <div class="winner-name" id="doug-winner-name"></div>
+            <div class="winner-email" id="doug-winner-email"></div>
+          </div>
+          <div class="roulette-actions">
+            <button class="btn btn-primary btn-sortear" onclick="sortear('dougbrazil')">🎲 Sortear!</button>
+            <button class="btn btn-reset" onclick="resetar('dougbrazil')">↺ Resetar Sorteio</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════ CNCF ══════════════ -->
+  <div id="panel-cncf" class="panel cncf">
+    <div style="text-align:center; margin-bottom:28px;">
+      <img src="/img/cncf.png" alt="CNCF Campinas" style="max-height:72px; max-width:260px; object-fit:contain; filter:drop-shadow(0 0 16px rgba(0,120,215,0.35));">
+    </div>
+    <div class="grid">
+
+      <!-- Cadastro -->
+      <div class="card">
+        <h2>📝 Inscrição</h2>
+        <div class="form-group">
+          <label>Nome completo</label>
+          <input type="text" id="cncf-nome" placeholder="Seu nome" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="cncf-email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <label class="consent">
+          <input type="checkbox" id="cncf-consent">
+          <span>Concordo que meus dados (nome e e-mail) sejam utilizados exclusivamente para este sorteio da CNCF Campinas, conforme a LGPD.</span>
+        </label>
+        <button class="btn btn-primary" onclick="cadastrar('cncf')">Participar do Sorteio</button>
+        <div class="toast" id="cncf-toast"></div>
+        <div class="lgpd-link">
+          <button onclick="toggleLgpd('cncf')">🗑 Remover meus dados (LGPD)</button>
+        </div>
+        <div class="lgpd-form" id="lgpd-cncf">
+          <p>Informe seu e-mail para remover todos os seus dados deste evento.</p>
+          <input type="email" id="lgpd-email-cncf" placeholder="seu@email.com">
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="lgpd-btn-confirm" onclick="deletarDados('cncf')">Confirmar exclusão</button>
+            <button class="lgpd-btn-cancel" onclick="toggleLgpd('cncf')">Cancelar</button>
+          </div>
+          <div class="toast" id="lgpd-toast-cncf"></div>
+        </div>
+      </div>
+
+      <!-- QR + Counter -->
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="card qr-card">
+          <h2 style="align-self:flex-start">📲 Link do Evento</h2>
+          <img src="data:image/png;base64,{{ qr_cncf }}" alt="QR Code CNCF Campinas">
+          <p>Aponte a câmera para acessar<br><a href="https://linktr.ee/cncfcampinas" target="_blank">linktr.ee/cncfcampinas</a></p>
+        </div>
+        <div class="card">
+          <div class="counter">
+            <div class="num" id="cncf-total">0</div>
+            <div>
+              <div class="lbl">participantes</div>
+              <div style="font-size:0.72rem;color:var(--muted)">inscritos</div>
+            </div>
+          </div>
+          <div id="cncf-lista" style="font-size:0.8rem;color:var(--muted);max-height:90px;overflow-y:auto;line-height:1.8;"></div>
+        </div>
+      </div>
+
+      <!-- Roulette -->
+      <div class="card roulette-section">
+        <h2>🎰 Roleta do Sorteio</h2>
+        <div class="roulette-wrap">
+          <div class="drum-container" id="cncf-drum">
+            <div class="drum-highlight"></div>
+            <div class="drum-track" id="cncf-track">
+              <div class="drum-item center">Cadastre participantes...</div>
+            </div>
+          </div>
+          <div class="winner-banner" id="cncf-winner">
+            <div class="trophy">🏆</div>
+            <div class="winner-name" id="cncf-winner-name"></div>
+            <div class="winner-email" id="cncf-winner-email"></div>
+          </div>
+          <div class="roulette-actions">
+            <button class="btn btn-primary btn-sortear" onclick="sortear('cncf')">🎲 Sortear!</button>
+            <button class="btn btn-reset" onclick="resetar('cncf')">↺ Resetar Sorteio</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+const ITEM_H = 60;
+
+function switchTab(evt, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn');
+  document.getElementById('panel-' + evt).classList.add('active');
+  btn.classList.add('active-' + evt);
+  carregarParticipantes(evt === 'doug' ? 'dougbrazil' : 'cncf');
+}
+
+function evtKey(evento) { return evento === 'dougbrazil' ? 'doug' : 'cncf'; }
+
+function showToast(evento, msg, tipo) {
+  const k = evtKey(evento);
+  const el = document.getElementById(k + '-toast');
+  el.textContent = msg;
+  el.className = 'toast ' + tipo;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+async function cadastrar(evento) {
+  const k = evtKey(evento);
+  const nome  = document.getElementById(k + '-nome').value.trim();
+  const email = document.getElementById(k + '-email').value.trim();
+  const consent = document.getElementById(k + '-consent').checked;
+
+  if (!nome || !email) return showToast(evento, '⚠️ Preencha nome e e-mail.', 'err');
+
+  const res = await fetch('/cadastrar', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ nome, email, evento, consentimento: consent })
+  });
+  const data = await res.json();
+
+  if (data.sucesso) {
+    showToast(evento, data.mensagem, 'ok');
+    document.getElementById(k + '-nome').value = '';
+    document.getElementById(k + '-email').value = '';
+    document.getElementById(k + '-consent').checked = false;
+    document.getElementById(k + '-total').textContent = data.total;
+    carregarParticipantes(evento);
+  } else {
+    showToast(evento, data.erro, 'err');
+  }
+}
+
+async function carregarParticipantes(evento) {
+  const k = evtKey(evento);
+  const res = await fetch('/participantes/' + evento);
+  const data = await res.json();
+  document.getElementById(k + '-total').textContent = data.total || 0;
+  const lista = document.getElementById(k + '-lista');
+  if (data.participantes && data.participantes.length) {
+    lista.innerHTML = data.participantes.map(p => `• ${p.nome}`).join('<br>');
+  } else {
+    lista.innerHTML = '<span>Nenhum inscrito ainda.</span>';
+  }
+}
+
+/* ── Roulette animation ── */
+function animateDrum(trackEl, nomes, vencedor, onDone) {
+  const SPINS = 40; // total de itens que passam
+  const DURATION = 3200;
+
+  // Monta sequência: nomes aleatórios + vencedor no centro no final
+  const seq = [];
+  for (let i = 0; i < SPINS - 2; i++) {
+    seq.push(nomes[Math.floor(Math.random() * nomes.length)]);
+  }
+  seq.push(vencedor); // termina no vencedor
+
+  // Preenche o track (3 visíveis antes + sequência)
+  const padding = 3;
+  const items = [...Array(padding).fill(nomes[0]), ...seq];
+  trackEl.innerHTML = items.map((n, i) => {
+    const isCtr = i === items.length - padding;
+    return `<div class="drum-item${isCtr ? ' center' : ''}">${n}</div>`;
+  }).join('');
+
+  const targetY = -((items.length - padding) * ITEM_H) + (padding * ITEM_H);
+
+  // Ease-out cubic
+  const start = performance.now();
+  const fromY = 0;
+  function step(now) {
+    const t = Math.min((now - start) / DURATION, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const y = fromY + (targetY - fromY) * ease;
+    trackEl.style.transform = `translateY(${y}px)`;
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      trackEl.style.transform = `translateY(${targetY}px)`;
+      // highlight center
+      trackEl.querySelectorAll('.drum-item').forEach((el, i) => {
+        el.classList.toggle('center', i === items.length - padding);
+      });
+      onDone();
+    }
+  }
+  trackEl.style.transform = 'translateY(0)';
+  requestAnimationFrame(step);
+}
+
+async function sortear(evento) {
+  const k = evtKey(evento);
+  const trackEl = document.getElementById(k + '-track');
+  document.getElementById(k + '-winner').style.display = 'none';
+
+  const res = await fetch('/sortear', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ evento })
+  });
+  const data = await res.json();
+
+  if (!data.sucesso) {
+    showToast(evento, data.erro, 'err');
+    return;
+  }
+
+  const nomes = data.participantes.map(p => p.nome);
+  const vencedor = data.vencedor;
+
+  animateDrum(trackEl, nomes, vencedor.nome, () => {
+    const banner = document.getElementById(k + '-winner');
+    document.getElementById(k + '-winner-name').textContent = vencedor.nome;
+    document.getElementById(k + '-winner-email').textContent = vencedor.email;
+    banner.style.display = 'block';
+    banner.style.animation = 'none';
+    void banner.offsetWidth;
+    banner.style.animation = 'fadeUp 0.5s ease';
+  });
+}
+
+async function resetar(evento) {
+  if (!confirm('Resetar o sorteio? Todos poderão ser sorteados novamente.')) return;
+  const k = evtKey(evento);
+  const res = await fetch('/resetar', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ evento })
+  });
+  const data = await res.json();
+  showToast(evento, data.mensagem || data.erro, data.sucesso ? 'ok' : 'err');
+  document.getElementById(k + '-winner').style.display = 'none';
+  document.getElementById(k + '-track').innerHTML = '<div class="drum-item center">Pronto para sortear!</div>';
+  document.getElementById(k + '-track').style.transform = 'translateY(0)';
+}
+
+// Carrega participantes ao abrir
+carregarParticipantes('dougbrazil');
+carregarParticipantes('cncf');
+
+// ── LGPD ──
+function toggleLgpd(evento) {
+  const el = document.getElementById('lgpd-' + evento);
+  const aberto = el.style.display === 'block';
+  el.style.display = aberto ? 'none' : 'block';
+  if (!aberto) document.getElementById('lgpd-email-' + evento).focus();
+}
+
+async function deletarDados(evento) {
+  const email = document.getElementById('lgpd-email-' + evento).value.trim();
+  if (!email) return;
+
+  const toast = document.getElementById('lgpd-toast-' + evento);
+  function showLgpdToast(msg, tipo) {
+    toast.textContent = msg; toast.className = 'toast ' + tipo; toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 5000);
+  }
+
+  const res = await fetch('/deletar-dados', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ email, evento })
+  });
+  const data = await res.json();
+
+  if (data.sucesso) {
+    showLgpdToast('✅ ' + data.mensagem, 'ok');
+    document.getElementById('lgpd-email-' + evento).value = '';
+    setTimeout(() => toggleLgpd(evento), 3000);
+    carregarParticipantes(evento);
+  } else {
+    showLgpdToast('⚠️ ' + data.erro, 'err');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+{% extends 'admin/base.html' %}
+{% block title %}Novo Sorteio{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/admin/dashboard">Dashboard</a><span>›</span>Novo Sorteio
+</div>
+
+<div class="page-header">
+  <h1>Novo Sorteio</h1>
+  <p>Configure o sorteio e vincule a um evento.</p>
+</div>
+
+{% if errors %}
+<div class="alert alert-err">
+  {% for e in errors %}<div>• {{ e }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<div style="max-width:500px;">
+  <div class="card">
+    <form method="POST">
+      <div class="form-group">
+        <label>Nome do sorteio *</label>
+        <input type="text" name="nome" value="{{ form.get('nome', '') }}"
+               placeholder="Ex: Camisa Oficial" autofocus required>
+      </div>
+      <div class="form-group">
+        <label>Descrição (opcional)</label>
+        <textarea name="descricao" placeholder="Prêmio, regras, observações...">{{ form.get('descricao', '') }}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Evento *</label>
+        <select name="evento" required>
+          <option value="">Selecione o evento...</option>
+          <option value="dougbrazil" {% if form.get('evento') == 'dougbrazil' %}selected{% endif %}>🔥 DougBrazil</option>
+          <option value="cncf" {% if form.get('evento') == 'cncf' %}selected{% endif %}>☁️ CNCF Campinas</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quantidade de ganhadores *</label>
+        <input type="number" name="num_ganhadores" value="{{ form.get('num_ganhadores', '1') }}"
+               min="1" max="100" required>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;">Criar Sorteio</button>
+        <a href="/admin/dashboard" class="btn btn-ghost">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

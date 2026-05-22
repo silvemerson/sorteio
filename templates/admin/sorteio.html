@@ -1,0 +1,306 @@
+{% extends 'admin/base.html' %}
+{% block title %}{{ sorteio.nome }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/admin/dashboard">Dashboard</a><span>›</span>{{ sorteio.nome }}
+</div>
+
+<div class="flex-between flex-wrap" style="margin-bottom:24px;">
+  <div>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px; flex-wrap:wrap;">
+      <img src="/img/{% if sorteio.evento == 'dougbrazil' %}doug{% else %}cncf{% endif %}.png"
+           alt="{{ sorteio.evento }}"
+           style="height:36px; object-fit:contain; filter:drop-shadow(0 0 10px {% if sorteio.evento == 'dougbrazil' %}rgba(0,195,58,.6){% else %}rgba(0,120,215,.5){% endif %});">
+      <h1 style="font-family:var(--font-head); font-size:1.7rem; font-weight:800;">{{ sorteio.nome }}</h1>
+      <span class="badge {% if sorteio.evento == 'dougbrazil' %}badge-doug{% else %}badge-cncf{% endif %}">
+        {% if sorteio.evento == 'dougbrazil' %}🔥 DougBrazil{% else %}☁️ CNCF{% endif %}
+      </span>
+    </div>
+    {% if sorteio.descricao %}
+    <p style="color:var(--muted); font-size:0.88rem; margin-bottom:4px;">{{ sorteio.descricao }}</p>
+    {% endif %}
+    <p style="font-size:0.75rem; color:var(--muted);">
+      URL pública:
+      <a href="/sorteio/{{ sorteio.slug }}" target="_blank"
+         style="text-decoration:underline; opacity:0.6;">/sorteio/{{ sorteio.slug }}</a>
+    </p>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <a href="/sorteio/{{ sorteio.slug }}" target="_blank" class="btn btn-ghost">↗ Ver público</a>
+    <button class="btn btn-danger" onclick="confirmarDeletar()">Deletar</button>
+  </div>
+</div>
+
+<!-- QR de inscrição + Stats -->
+<div style="display:grid; grid-template-columns:auto 1fr; gap:16px; margin-bottom:24px; align-items:start;">
+
+  <!-- QR Card -->
+  <div class="card" style="display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px; min-width:180px;">
+    <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted);">📲 QR de Inscrição</div>
+    <img src="data:image/png;base64,{{ qr_sorteio }}" alt="QR Sorteio"
+         style="width:140px; height:140px; border-radius:10px; background:#fff; padding:4px;
+                border: 3px solid {% if sorteio.evento == 'dougbrazil' %}rgba(0,185,58,.5){% else %}rgba(0,120,215,.4){% endif %};
+                box-shadow: 0 0 16px {% if sorteio.evento == 'dougbrazil' %}rgba(0,155,58,.3){% else %}rgba(0,120,215,.25){% endif %};">
+    <div style="font-size:0.65rem; color:var(--muted); text-align:center; word-break:break-all; max-width:150px;">
+      <a href="{{ sorteio_url }}" target="_blank" style="color:inherit; text-decoration:underline; opacity:0.7;">
+        {{ sorteio_url }}
+      </a>
+    </div>
+    <button onclick="navigator.clipboard.writeText('{{ sorteio_url }}').then(()=>showToast('Link copiado!','ok'))"
+            class="btn btn-ghost" style="font-size:0.7rem; padding:6px 14px; border-radius:20px;">
+      Copiar link
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;">
+  <div class="card" style="text-align:center; padding:18px;">
+    <div id="stat-ganhadores" style="font-family:var(--font-head); font-size:1.8rem; font-weight:800;">
+      {{ ganhadores|length }}/{{ sorteio.num_ganhadores }}
+    </div>
+    <div style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Ganhadores</div>
+  </div>
+  <div class="card" style="text-align:center; padding:18px;">
+    <div style="font-family:var(--font-head); font-size:1.8rem; font-weight:800;">{{ participantes|length }}</div>
+    <div style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Participantes</div>
+  </div>
+  <div class="card" style="text-align:center; padding:18px;">
+    <div id="stat-disp" style="font-family:var(--font-head); font-size:1.8rem; font-weight:800;">{{ disponiveis }}</div>
+    <div style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Disponíveis</div>
+  </div>
+  </div><!-- /stats grid -->
+</div><!-- /qr+stats grid -->
+
+<!-- Drum + sortear -->
+<div class="card" style="margin-bottom:24px;">
+  <div style="display:flex; flex-direction:column; align-items:center; gap:20px;">
+
+    <div style="width:100%; max-width:520px; height:180px; position:relative;
+      overflow:hidden; border-radius:14px; background:rgba(0,0,0,0.4); border:1px solid var(--border);">
+      <div style="position:absolute;left:0;right:0;top:0;height:60px;z-index:2;pointer-events:none;
+        background:linear-gradient(to bottom,rgba(24,24,24,.95),transparent);"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:60px;z-index:2;pointer-events:none;
+        background:linear-gradient(to top,rgba(24,24,24,.95),transparent);"></div>
+      <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+        height:52px;z-index:1;pointer-events:none;
+        {% if sorteio.evento == 'dougbrazil' %}
+          background:rgba(0,155,58,.12);border-top:1px solid rgba(255,215,0,.55);border-bottom:1px solid rgba(255,215,0,.55);
+        {% else %}
+          background:rgba(0,120,215,.12);border-top:1px solid rgba(0,120,215,.4);border-bottom:1px solid rgba(0,120,215,.4);
+        {% endif %}
+      "></div>
+      <div id="drum-track" style="position:absolute;top:0;left:0;right:0;will-change:transform;">
+        <div style="height:60px;display:flex;align-items:center;justify-content:center;
+          font-family:var(--font-head);font-size:1.1rem;font-weight:700;color:rgba(255,255,255,.5);">
+          {% if participantes %}Pronto para sortear{% else %}Aguardando participantes...{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div id="winner-banner" style="display:none;width:100%;max-width:520px;text-align:center;
+      padding:20px;border-radius:14px;
+      {% if sorteio.evento == 'dougbrazil' %}
+        background:linear-gradient(135deg,rgba(0,155,58,.2),rgba(255,215,0,.07));border:1px solid rgba(0,185,58,.5);
+      {% else %}
+        background:linear-gradient(135deg,rgba(0,120,215,.2),rgba(0,209,255,.08));border:1px solid rgba(0,120,215,.4);
+      {% endif %}
+    ">
+      <div style="font-size:2.2rem;margin-bottom:6px;">🏆</div>
+      <div id="w-pos" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px;"></div>
+      <div id="w-nome" style="font-family:var(--font-head);font-size:1.6rem;font-weight:800;"></div>
+      <div id="w-email" style="font-size:0.82rem;color:var(--muted);margin-top:4px;"></div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <button id="btn-sortear" class="btn btn-primary btn-lg"
+        {% if not pode_sortear %}disabled{% endif %}
+        onclick="executarSorteio()">
+        🎲 Sortear
+        {% if ganhadores|length < sorteio.num_ganhadores %}
+          {{ ganhadores|length + 1 }}º Ganhador
+        {% else %}
+          — Concluído
+        {% endif %}
+      </button>
+      <button id="btn-reset" class="btn btn-ghost"
+        style="border-radius:50px; padding:14px 24px;"
+        onclick="resetarSorteio()"
+        {% if not ganhadores %}disabled{% endif %}>
+        ↺ Resetar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Winners + Participants -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <div class="card">
+    <h2>🏆 Ganhadores</h2>
+    <div id="ganhadores-list">
+      {% if ganhadores %}
+        {% for g in ganhadores %}
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;
+            font-family:var(--font-head);font-weight:800;font-size:0.75rem;
+            {% if g.posicao == 1 %}background:#FFD700;color:#000;
+            {% elif g.posicao == 2 %}background:#C0C0C0;color:#000;
+            {% elif g.posicao == 3 %}background:#CD7F32;color:#fff;
+            {% else %}background:rgba(255,255,255,.1);color:var(--text);{% endif %}
+          ">{{ g.posicao }}º</div>
+          <div>
+            <div style="font-weight:600;font-size:0.9rem;">{{ g.nome }}</div>
+            <div style="font-size:0.73rem;color:var(--muted);">{{ g.email }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p id="empty-winners" style="font-size:0.83rem;color:var(--muted);">Nenhum ganhador ainda.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>👥 Participantes ({{ participantes|length }})</h2>
+    <div style="max-height:320px;overflow-y:auto;scrollbar-width:thin;">
+      {% if participantes %}
+        {% for p in participantes %}
+        <div style="padding:8px 0;border-bottom:1px solid var(--border);">
+          <div style="font-size:0.85rem;font-weight:500;">{{ p.nome }}</div>
+          <div style="font-size:0.72rem;color:var(--muted);">{{ p.email }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p style="font-size:0.83rem;color:var(--muted);">Nenhum participante inscrito ainda.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<form id="form-deletar" method="POST" action="/admin/sorteio/{{ sorteio.id }}/deletar" style="display:none;"></form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SORTEIO_ID = {{ sorteio.id }};
+const ITEM_H = 60;
+let ganhadoresCount = {{ ganhadores|length }};
+let numGanhadores = {{ sorteio.num_ganhadores }};
+let disponiveis = {{ disponiveis }};
+
+function posLabel(n) {
+  return n <= 10 ? ['','1º','2º','3º','4º','5º','6º','7º','8º','9º','10º'][n] : n + 'º';
+}
+
+function medalStyle(pos) {
+  if (pos === 1) return 'background:#FFD700;color:#000;';
+  if (pos === 2) return 'background:#C0C0C0;color:#000;';
+  if (pos === 3) return 'background:#CD7F32;color:#fff;';
+  return 'background:rgba(255,255,255,.1);color:var(--text);';
+}
+
+function animateDrum(nomes, vencedor, onDone) {
+  const track = document.getElementById('drum-track');
+  const SPINS = 42, DURATION = 3400;
+  const seq = [];
+  for (let i = 0; i < SPINS - 1; i++) seq.push(nomes[Math.floor(Math.random() * nomes.length)]);
+  seq.push(vencedor);
+  const pad = 3;
+  const items = [...Array(pad).fill(nomes[0] || '...'), ...seq];
+  track.innerHTML = items.map((n, i) => {
+    const center = i === items.length - pad;
+    return `<div style="height:60px;display:flex;align-items:center;justify-content:center;
+      font-family:var(--font-head);font-size:${center ? '1.2' : '1'}rem;font-weight:700;
+      color:${center ? '#fff' : 'rgba(255,255,255,.35)'};
+      padding:0 20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${n}</div>`;
+  }).join('');
+  const targetY = -((items.length - pad) * ITEM_H) + pad * ITEM_H;
+  track.style.transform = 'translateY(0)';
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / DURATION, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    track.style.transform = `translateY(${ease * targetY}px)`;
+    if (t < 1) requestAnimationFrame(step);
+    else { track.style.transform = `translateY(${targetY}px)`; onDone(); }
+  }
+  requestAnimationFrame(step);
+}
+
+async function executarSorteio() {
+  const btn = document.getElementById('btn-sortear');
+  btn.disabled = true;
+  document.getElementById('winner-banner').style.display = 'none';
+
+  const res = await fetch(`/admin/sorteio/${SORTEIO_ID}/sortear`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'
+  });
+  const data = await res.json();
+
+  if (!data.sucesso) {
+    showToast(data.erro, 'err');
+    btn.disabled = false;
+    return;
+  }
+
+  const nomes = data.participantes.map(p => p.nome);
+  ganhadoresCount++;
+  disponiveis--;
+
+  animateDrum(nomes, data.vencedor.nome, () => {
+    document.getElementById('w-pos').textContent = posLabel(data.posicao) + ' Lugar';
+    document.getElementById('w-nome').textContent = data.vencedor.nome;
+    document.getElementById('w-email').textContent = data.vencedor.email;
+    const banner = document.getElementById('winner-banner');
+    banner.style.display = 'block';
+
+    const list = document.getElementById('ganhadores-list');
+    const empty = document.getElementById('empty-winners');
+    if (empty) empty.remove();
+    list.insertAdjacentHTML('beforeend', `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;
+          display:flex;align-items:center;justify-content:center;
+          font-family:var(--font-head);font-weight:800;font-size:0.75rem;${medalStyle(data.posicao)}">
+          ${posLabel(data.posicao)}
+        </div>
+        <div>
+          <div style="font-weight:600;font-size:0.9rem;">${data.vencedor.nome}</div>
+          <div style="font-size:0.73rem;color:var(--muted);">${data.vencedor.email}</div>
+        </div>
+      </div>
+    `);
+
+    document.getElementById('stat-ganhadores').textContent = `${ganhadoresCount}/${numGanhadores}`;
+    document.getElementById('stat-disp').textContent = disponiveis;
+    document.getElementById('btn-reset').disabled = false;
+
+    if (ganhadoresCount >= numGanhadores || disponiveis <= 0) {
+      btn.textContent = '✅ Sorteio concluído!';
+    } else {
+      btn.innerHTML = `🎲 Sortear ${posLabel(ganhadoresCount + 1)} Ganhador`;
+      btn.disabled = false;
+    }
+  });
+}
+
+async function resetarSorteio() {
+  if (!confirm('Resetar todos os ganhadores deste sorteio?')) return;
+  const res = await fetch(`/admin/sorteio/${SORTEIO_ID}/resetar`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'
+  });
+  const data = await res.json();
+  if (data.sucesso) location.reload();
+  else showToast(data.erro, 'err');
+}
+
+function confirmarDeletar() {
+  if (confirm('Deletar este sorteio permanentemente?')) {
+    document.getElementById('form-deletar').submit();
+  }
+}
+</script>
+{% endblock %}

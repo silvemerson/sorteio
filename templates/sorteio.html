@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ sorteio.nome }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --doug-primary: #009B3A; --doug-accent: #FFD700;
+    --cncf-primary: #0078D7; --cncf-accent: #00D1FF;
+    --font-body: 'Inter', sans-serif;
+    --font-head: 'Inter', sans-serif;
+    {% if sorteio.evento == 'dougbrazil' %}
+    --ev-primary: #009B3A; --ev-accent: #FFD700; --ev-glow: rgba(0,155,58,.4);
+    {% else %}
+    --ev-primary: #0078D7; --ev-accent: #00D1FF; --ev-glow: rgba(0,120,215,.35);
+    {% endif %}
+    --bg: #0d0d0d; --surface: #181818; --border: rgba(255,255,255,0.08);
+    --text: #f0f0f0; --muted: #888; --radius: 16px;
+    --font-head: 'Syne', sans-serif; --font-body: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.03;
+  }
+  .wrapper { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  header { text-align: center; margin-bottom: 40px; }
+  .ev-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 14px; border-radius: 20px; font-size: 0.72rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;
+    {% if sorteio.evento == 'dougbrazil' %}
+    background: rgba(0,155,58,.15); color: var(--doug-accent); border: 1px solid rgba(0,155,58,.35);
+    {% else %}
+    background: rgba(0,120,215,.15); color: var(--cncf-accent); border: 1px solid rgba(0,120,215,.3);
+    {% endif %}
+  }
+  header h1 {
+    font-family: var(--font-head); font-size: clamp(1.8rem,4vw,3rem); font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg,#fff 30%,#aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  header p { color: var(--muted); margin-top: 8px; font-size: 0.9rem; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .card h2 {
+    font-family: var(--font-head); font-size: 0.85rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--ev-accent); margin-bottom: 16px;
+  }
+
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  input[type=text], input[type=email] {
+    width: 100%; background: rgba(255,255,255,.05); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; color: var(--text);
+    font-family: var(--font-body); font-size: 0.93rem; outline: none; transition: border-color .2s;
+  }
+  input:focus { border-color: rgba(255,255,255,.25); }
+  .consent {
+    display: flex; gap: 10px; align-items: flex-start; cursor: pointer;
+    background: rgba(255,255,255,.04); border-radius: 10px; padding: 12px;
+    margin-bottom: 16px; font-size: 0.78rem; color: var(--muted); line-height: 1.5;
+  }
+  .consent input { margin-top: 2px; flex-shrink: 0; width: auto; }
+  .btn-inscricao {
+    width: 100%; padding: 14px; border: none; border-radius: 10px;
+    font-family: var(--font-head); font-weight: 700; font-size: {% if sorteio.evento == 'dougbrazil' %}1rem{% else %}0.88rem{% endif %};
+    letter-spacing: 0.5px;
+    text-transform: uppercase; cursor: pointer; transition: all .2s;
+    background: var(--ev-primary); color: #fff;
+    box-shadow: 0 0 24px var(--ev-glow);
+  }
+  .btn-inscricao:hover { background: {% if sorteio.evento == 'dougbrazil' %}#00b341{% else %}#0086ef{% endif %}; }
+  .btn-inscricao:hover { opacity: 0.88; }
+  .toast { margin-top: 12px; padding: 12px 14px; border-radius: 10px; font-size: 0.85rem; display: none; }
+  .toast.ok  { background: rgba(0,220,120,.12); border: 1px solid rgba(0,220,120,.3); color: #00dc78; }
+  .toast.err { background: rgba(255,80,80,.12); border: 1px solid rgba(255,80,80,.3); color: #ff6060; }
+
+  .qr-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+  .qr-card img { width: 150px; height: 150px; border-radius: 10px; background: #fff; padding: 4px; border: 3px solid var(--border); }
+  .qr-card p { font-size: 0.76rem; color: var(--muted); text-align: center; }
+  .qr-card a { color: inherit; text-decoration: underline; opacity: 0.65; }
+
+  .counter { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.04); border-radius: 10px; padding: 12px 16px; }
+  .counter .num { font-family: var(--font-head); font-size: 2rem; font-weight: 800; color: var(--ev-accent); line-height: 1; }
+  .counter .lbl { font-size: 0.73rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Winners */
+  .winners-section { grid-column: 1 / -1; }
+  .winner-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px; border-radius: 12px; margin-bottom: 10px;
+    border: 1px solid var(--border); background: rgba(255,255,255,.02);
+    animation: fadeUp .4s ease;
+  }
+  .winner-item:first-child {
+    {% if sorteio.evento == 'dougbrazil' %}
+    background: linear-gradient(135deg,rgba(0,155,58,.18),rgba(255,215,0,.06)); border-color: rgba(0,185,58,.45);
+    {% else %}
+    background: linear-gradient(135deg,rgba(0,120,215,.15),rgba(0,209,255,.05)); border-color: rgba(0,120,215,.35);
+    {% endif %}
+  }
+  .medal {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-head); font-weight: 800; font-size: 0.78rem;
+  }
+  .m1 { background: #FFD700; color: #000; }
+  .m2 { background: #C0C0C0; color: #000; }
+  .m3 { background: #CD7F32; color: #fff; }
+  .mn { background: rgba(255,255,255,.1); color: var(--text); }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="ev-tag">
+      {% if sorteio.evento == 'dougbrazil' %}🔥 DougBrazil{% else %}☁️ CNCF Campinas{% endif %}
+    </div>
+    <div style="margin-bottom:20px;">
+      <img src="/img/{% if sorteio.evento == 'dougbrazil' %}doug{% else %}cncf{% endif %}.png"
+           alt="{{ sorteio.evento }}"
+           style="max-height:80px; max-width:280px; object-fit:contain; filter:drop-shadow(0 0 20px var(--ev-glow));">
+    </div>
+    <h1>{{ sorteio.nome }}</h1>
+    {% if sorteio.descricao %}<p>{{ sorteio.descricao }}</p>{% endif %}
+  </header>
+
+  <div class="grid">
+
+    <!-- Inscrição -->
+    <div class="card">
+      <h2>📝 Inscrição</h2>
+      <div class="form-group">
+        <label>Nome completo</label>
+        <input type="text" id="nome" placeholder="Seu nome" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <label class="consent">
+        <input type="checkbox" id="consent">
+        <span>Concordo que meus dados (nome e e-mail) sejam usados exclusivamente para este sorteio, conforme a LGPD.</span>
+      </label>
+      <button class="btn-inscricao" onclick="cadastrar()">Participar do Sorteio</button>
+      <div class="toast" id="toast"></div>
+      <div style="margin-top:10px; text-align:center;">
+        <button onclick="toggleLgpd()" style="background:none;border:none;cursor:pointer;
+          font-size:0.72rem;color:var(--muted);text-decoration:underline;opacity:0.6;
+          font-family:var(--font-body);transition:opacity .2s;"
+          onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">
+          🗑 Remover meus dados (LGPD)
+        </button>
+      </div>
+      <div id="lgpd-form" style="display:none; margin-top:12px; padding:14px;
+        background:rgba(255,80,80,.06); border:1px solid rgba(255,80,80,.2);
+        border-radius:10px; font-size:0.82rem; color:var(--muted); animation:fadeUp .3s ease;">
+        <p style="margin-bottom:10px; line-height:1.5;">
+          Informe seu e-mail para remover todos os seus dados deste sorteio (Art. 18, LGPD).
+        </p>
+        <input type="email" id="lgpd-email" placeholder="seu@email.com"
+               style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);
+                      border-radius:8px;padding:10px 12px;color:var(--text);
+                      font-family:var(--font-body);font-size:0.88rem;outline:none;">
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button onclick="deletarDados()" style="flex:1;padding:9px;border-radius:8px;cursor:pointer;
+            background:rgba(255,60,60,.2);color:#ff6060;border:1px solid rgba(255,60,60,.3);
+            font-family:var(--font-body);font-size:0.8rem;font-weight:600;">
+            Confirmar exclusão
+          </button>
+          <button onclick="toggleLgpd()" style="padding:9px 16px;border:1px solid var(--border);
+            border-radius:8px;cursor:pointer;background:transparent;color:var(--muted);
+            font-family:var(--font-body);font-size:0.8rem;">
+            Cancelar
+          </button>
+        </div>
+        <div class="toast" id="lgpd-toast"></div>
+      </div>
+    </div>
+
+    <!-- QR + Counter -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+
+      <!-- QR inscrição -->
+      <div class="card qr-card">
+        <h2 style="align-self:flex-start;">📲 Inscreva-se aqui!</h2>
+        <img src="data:image/png;base64,{{ qr_inscricao }}" alt="QR inscrição"
+             style="width:160px; height:160px; border-radius:10px; background:#fff; padding:4px;
+                    border: 3px solid var(--ev-accent); box-shadow: 0 0 16px var(--ev-glow);">
+        <p style="font-size:0.7rem;">
+          <a href="{{ sorteio_url }}" target="_blank" style="word-break:break-all;">{{ sorteio_url }}</a>
+        </p>
+      </div>
+
+      <!-- QR contatos -->
+      <div class="card qr-card">
+        <h2 style="align-self:flex-start;">🔗 Contatos</h2>
+        <img src="data:image/png;base64,{{ qr_contatos }}" alt="QR contatos">
+        <p>Aponte a câmera para acessar<br>
+          <a href="{{ linktree_url }}" target="_blank">
+            {% if sorteio.evento == 'dougbrazil' %}linktr.ee/dougbrazil{% else %}linktr.ee/cncfcampinas{% endif %}
+          </a>
+        </p>
+      </div>
+      <div class="card">
+        <div class="counter">
+          <div class="num" id="total">{{ total }}</div>
+          <div>
+            <div class="lbl">participantes</div>
+            <div style="font-size:0.7rem;color:var(--muted);">inscritos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ganhadores -->
+    {% if ganhadores %}
+    <div class="card winners-section">
+      <h2>🏆 Ganhadores</h2>
+      {% for g in ganhadores %}
+      <div class="winner-item">
+        <div class="medal {% if g.posicao == 1 %}m1{% elif g.posicao == 2 %}m2{% elif g.posicao == 3 %}m3{% else %}mn{% endif %}">
+          {{ g.posicao }}º
+        </div>
+        <div>
+          <div style="font-family:var(--font-head);font-weight:700;font-size:1rem;">{{ g.nome }}</div>
+          <div style="font-size:0.78rem;color:var(--muted);">{{ g.email }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div id="winners-placeholder" class="card winners-section" style="text-align:center;padding:36px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:10px;">⏳</div>
+      <p style="color:var(--muted);font-size:0.88rem;line-height:1.5;">
+        O sorteio ainda não foi realizado.<br>Fique de olho nessa página!
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+const EVENTO = '{{ sorteio.evento }}';
+const SLUG = '{{ sorteio.slug }}';
+
+function showToast(msg, tipo) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast ' + tipo; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+async function cadastrar() {
+  const nome = document.getElementById('nome').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const consent = document.getElementById('consent').checked;
+  if (!nome || !email) return showToast('⚠️ Preencha nome e e-mail.', 'err');
+  const res = await fetch('/cadastrar', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ nome, email, evento: EVENTO, consentimento: consent })
+  });
+  const data = await res.json();
+  if (data.sucesso) {
+    showToast(data.mensagem, 'ok');
+    document.getElementById('nome').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('consent').checked = false;
+    document.getElementById('total').textContent = data.total;
+  } else {
+    showToast(data.erro, 'err');
+  }
+}
+
+{% if not ganhadores %}
+let lastCount = 0;
+async function pollGanhadores() {
+  try {
+    const res = await fetch(`/sorteio/${SLUG}/status`);
+    const data = await res.json();
+    const count = (data.ganhadores || []).length;
+    if (count > lastCount) location.reload();
+    lastCount = count;
+    if (data.total_participantes) document.getElementById('total').textContent = data.total_participantes;
+  } catch (_) {}
+}
+setInterval(pollGanhadores, 5000);
+{% endif %}
+
+// ── LGPD ──
+function toggleLgpd() {
+  const el = document.getElementById('lgpd-form');
+  const aberto = el.style.display === 'block';
+  el.style.display = aberto ? 'none' : 'block';
+  if (!aberto) document.getElementById('lgpd-email').focus();
+}
+
+async function deletarDados() {
+  const email = document.getElementById('lgpd-email').value.trim();
+  if (!email) return;
+
+  const toast = document.getElementById('lgpd-toast');
+  function showLgpdToast(msg, tipo) {
+    toast.textContent = msg; toast.className = 'toast ' + tipo; toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 5000);
+  }
+
+  const res = await fetch('/deletar-dados', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ email, evento: EVENTO })
+  });
+  const data = await res.json();
+
+  if (data.sucesso) {
+    showLgpdToast('✅ ' + data.mensagem, 'ok');
+    document.getElementById('lgpd-email').value = '';
+    setTimeout(() => toggleLgpd(), 3000);
+  } else {
+    showLgpdToast('⚠️ ' + data.erro, 'err');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+# ── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# ── Ambientes virtuais ───────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+virtualenv/
+
+# ── Banco de dados ───────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Variáveis de ambiente ────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Logs ─────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Distribuição / build ─────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# ── Cobertura de testes ──────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ── IDEs ─────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── macOS ─────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── Windows ──────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Linux ────────────────────────────────────────────────
+*~
+
+# ── Flask ────────────────────────────────────────────────
+instance/
+.webassets-cache
+
+# ── Gunicorn ─────────────────────────────────────────────
+gunicorn.pid
+
+
+sorteio.db
