@@ -189,46 +189,6 @@ SECRET_KEY=gere_uma_chave_aleatoria_aqui
 
 ---
 
-## Deploy gratuito
-
-### Fly.io (recomendado — sempre no ar)
-
-```bash
-# Instale a CLI
-curl -L https://fly.io/install.sh | sh
-
-# Login e criação do app
-fly launch
-
-# Volume persistente para o banco SQLite
-fly volumes create sorteio_data --size 1
-
-# Configure as variáveis
-fly secrets set ADMIN_USER=admin ADMIN_PASS=senha_forte SECRET_KEY=chave_aleatoria
-
-# Deploy
-fly deploy
-```
-
-### Railway (deploy via GitHub)
-
-1. Suba o projeto no GitHub
-2. Acesse [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-3. Configure as variáveis de ambiente no painel
-4. O `requirements.txt` é detectado automaticamente
-
-### Render
-
-1. Acesse [render.com](https://render.com) → **New Web Service**
-2. Conecte o repositório GitHub
-3. Build command: `pip install -r requirements.txt`
-4. Start command: `gunicorn app:app`
-5. Configure as variáveis de ambiente
-
-> O plano gratuito do Render hiberna após 15 min sem acesso. Para eventos ao vivo, prefira Fly.io ou Railway.
-
----
-
 ## Conformidade LGPD
 
 | Requisito | Implementação |
