@@ -126,9 +126,7 @@ def serve_img(filename):
 
 @app.route('/')
 def index():
-    qr_cncf = gerar_qrcode_base64('https://linktr.ee/cncfcampinas')
-    qr_doug = gerar_qrcode_base64('https://linktr.ee/dougbrazil')
-    return render_template('index.html', qr_cncf=qr_cncf, qr_doug=qr_doug)
+    return redirect(url_for('admin_dashboard'))
 
 
 @app.route('/sorteio/<slug>')
